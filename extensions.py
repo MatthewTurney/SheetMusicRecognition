@@ -7,10 +7,10 @@ def height(img):
 def width(img):
     return img.shape[1]
 
-def draw_staff_lines(img_no_staff, staff_bases, staff_gap, staff_line_thickness):
+def draw_staff_lines(img_no_staff, staff):
     img_colored_staff_base = cv.cvtColor(img_no_staff, cv.COLOR_GRAY2RGB)
-    for b in staff_bases:
-        for line in b-(np.array(range(5)) * (staff_gap + staff_line_thickness)):
+    for b in staff.bases:
+        for line in b-(np.array(range(5)) * (staff.gap + staff.line_thickness)):
             for col in range(width(img_colored_staff_base)):
                 img_colored_staff_base[line][col][0] = 0
                 img_colored_staff_base[line][col][1] = 0

@@ -3,6 +3,17 @@ import cv2 as cv
 from extensions import height, width, show_wait_destroy
 from preprocessing import binary_threshold
 
+class Staff():
+
+    def __init__(self, bases, white_gap, line_thickness):
+        self.bases = bases
+        self.gap = white_gap
+        self.line_thickness = line_thickness
+
+    def calculate_pitch(self, note):
+        base = min([b for b in self.bases if b > note.centery])
+        return (base - note.centery) // ((self.line_thickness + self.gap) // 2)
+
 # detect and remove the staff from the image
 # returns: the new image, an array of indices of the bottom line of each staff, and the average width (in pixels) between each staff line
 def remove_staff(img, method="morph"):
@@ -34,7 +45,7 @@ def remove_staff(img, method="morph"):
 
     img_no_staff = remove_staff_lines(img, staff_mask)
 
-    return img_no_staff, staff_bases, avg_staff_gap, avg_staff_thickness
+    return img_no_staff, Staff(staff_bases, avg_staff_gap, avg_staff_thickness)
 
 def calc_image_widths(img, mask):
     # create an array of the widths of each continuous chunk of white
