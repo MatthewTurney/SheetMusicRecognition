@@ -21,15 +21,16 @@ def calc_runs(arr, val):
         ret.append(i - mark)
     return ret
 
-def dist_to_nearest(center, centers2):
+def dist_to_nearest(center, centers2, threshold=3):
     start = center
     dist = 0
-    while(start + dist <= max(centers2) or start - dist >= 0):
+    while((start + dist <= max(centers2) or start - dist >= 0) and dist < threshold):
+        if (start - dist in centers2):
+            return -1.0 * dist
         if (start + dist in centers2):
-            return dist
-        elif(start - dist in centers2):
-            return -dist
+            return 1.0 * dist
         dist += 1
+    return 0
 
 if __name__ == "__main__":
     # Read specified image from file
@@ -70,7 +71,7 @@ if __name__ == "__main__":
     staff_height = np.median(black_runs)
     staff_space = np.median(white_runs)
 
-    T_length = min(2 * staff_height, staff_height + staff_space)
+    T_length = min(2.0 * staff_height, staff_height + staff_space)
 
     for col in range(width(img)):
         i = 0
@@ -87,8 +88,8 @@ if __name__ == "__main__":
     show_wait_destroy("initial staff image", img)
 
     # model line shape
-    T_staff_lines = 8
-    k = 5
+    T_staff_lines = 10
+    k = 3
 
     list_o = []
     ccs = []
@@ -102,28 +103,38 @@ if __name__ == "__main__":
             while(row < height(img) and img[row][col] == 255):
                 row+=1
             #cc.append((mark, row - 1)) # inclusive
-            cc.append(mark + (row - 1 - mark) // 2)
+            cc.append(mark + ((row - mark) // 2))
         ccs.append(cc)
 
+    missing_cols = []
     for i in range(width(img) - 2):
         if (len(ccs[i]) >= T_staff_lines):
             oriens = []
             for center in ccs[i]:
-                o = 0
+                o = 0.0
+                jcol = 1.0
                 for j in range(i + 1, i + k + 1):
-                   if (i+j < width(img) and len(ccs[i+j]) > 0):
-                       o += (1.0/j) * dist_to_nearest(center, ccs[i+j])
+                    if (j < width(img) and len(ccs[j]) > 0):
+                       o += (1.0/jcol) * dist_to_nearest(center, ccs[j])
+                    jcol+=1.0
                 oriens.append(o)
-            list_o.append((1.0 / len(oriens)) * sum(oriens))
+            #o_i = ((1.0 / len(oriens)) * sum(oriens))
+            o_i = np.median(oriens)
+            list_o.append(o_i)
+        else:
+            list_o.append(0.0)
+            missing_cols.append(i)
 
-    print(list_o)
 
-    img_blank = np.zeros(img.shape)
-    row = height(img_blank) // 2
+    print(sum(list_o))
+    print(len(missing_cols))
+
+    img_blank = img.copy()
+    row = height(img_blank) / 2.0
     col = 0
     for orientation in list_o:
-        img_blank[row][col] = 255
-        row += int(np.round(orientation))
+        img_blank[int(np.round(row))][col] = 255
+        row += orientation
         col += 1
 
     show_wait_destroy("staff orientations", img_blank)
