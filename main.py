@@ -14,6 +14,8 @@ if __name__ == "__main__":
     # Read specified image from file
     img_file = sys.argv[1]
     img = cv.imread(img_file, 0)
+    if img is None:
+        raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
 
     # display original image
     show_wait_destroy("Original image", img)
