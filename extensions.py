@@ -9,17 +9,24 @@ def width(img):
 
 def draw_staff_lines(img_no_staff, staff):
     img_colored_staff_base = cv.cvtColor(img_no_staff, cv.COLOR_GRAY2RGB)
-    for b in staff.bases:
-        for line in b-(np.array(range(5)) * (staff.gap + staff.line_thickness)):
-            for col in range(width(img_colored_staff_base)):
-                img_colored_staff_base[line][col][0] = 0
-                img_colored_staff_base[line][col][1] = 0
-                img_colored_staff_base[line][col][2] = 255
+    for i in range(len(staff.bases)):
+        for b in staff.bases[i]:
+            for line in b-(np.array(range(5)) * (staff.gap[i] + staff.line_thickness[i])):
+                for col in range(i * staff.chunk_size, (i+1) * staff.chunk_size):
+                    if (col >= width(img_no_staff) or line >= height(img_no_staff)):
+                        break
+                    img_colored_staff_base[line][col][0] = 0
+                    img_colored_staff_base[line][col][1] = 0
+                    img_colored_staff_base[line][col][2] = 255
 
     return img_colored_staff_base
 
-def show_wait_destroy(winname, img):
-    cv.imshow(winname, img)
+def show_wait_destroy(winname, img, resize=True):
+    if (resize):
+        img_resized = cv.resize(img.copy(), (720, 480))
+    else:
+        img_resized = img
+    cv.imshow(winname, img_resized)
     cv.moveWindow(winname, 500, 0)
     cv.waitKey(0)
     cv.destroyWindow(winname)
