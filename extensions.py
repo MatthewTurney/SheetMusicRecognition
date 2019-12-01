@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import sys
 
 def height(img):
     return img.shape[0]
@@ -30,3 +31,10 @@ def show_wait_destroy(winname, img, resize=True):
     cv.moveWindow(winname, 500, 0)
     cv.waitKey(0)
     cv.destroyWindow(winname)
+
+def read_image_from_args():
+    img_file = sys.argv[1]
+    img = cv.imread(img_file, 0)
+    if img is None:
+        raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
+    return img

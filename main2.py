@@ -2,267 +2,159 @@ import cv2 as cv
 import sys
 import numpy as np
 import imutils
+import MTM
 
-from preprocessing import binary_threshold
-from staff import remove_staff
-from extensions import height, width, draw_staff_lines, show_wait_destroy
-from template_matching import match_template, is_duplicate
-from note import Note
+from preprocessing import *
+from staff import *
+from extensions import *
+from template_matching import *
 
-def calc_runs(arr, val):
-    ret = []
-    i = 0
-    while(i < len(arr)):
-        while(i < len(arr) and arr[i] != val):
-            i+=1
-        mark = i
-        while(i < len(arr) and arr[i] == val):
-            i+=1
-        ret.append(i - mark)
-    return ret
-
-def calc_runs(arr, val1, val2):
-    ret1 = []
-    ret2 = []
-    i = 0
-    while(i < len(arr)):
-        mark = i
-        while(i < len(arr) and arr[i] == val1):
-            i+=1
-        ret1.append(i - mark)
-        mark = i
-        while(i < len(arr) and arr[i] == val2):
-            i+=1
-        ret2.append(i - mark)
-    return ret1, ret2
-
-def dist_to_nearest(center, centers2, threshold=3):
-    start = center
-    dist = 0
-    while((start + dist <= max(centers2) or start - dist >= 0) and dist < threshold):
-        if (start - dist in centers2):
-            return -1.0 * dist
-        if (start + dist in centers2):
-            return 1.0 * dist
-        dist += 1
-    return 0
-
-def calc_staff_line(slopes, row, img):
-    col = 0
-    r = row
-    line = []
-    for slope in slopes:
-        if (int(np.round(r)) < height(img) and col < width(img)):
-            line.append((int(np.round(r)), col))
-        r += slope
-        col += 1
-    return line
-
-def calc_staff_line_chunks(slopes, row, img, chunk_size):
-    col = 0
-    r = row
-    line = []
-    for col in range(width(img)):
-        if (int(np.round(r)) < height(img) and col < width(img)):
-            line.append((int(np.round(r)), col))
-        if (int(r // chunk_size) < len(slopes) and int(r // chunk_size) >= 0):
-            r += slopes[int(r // chunk_size)][col]
-        col += 1
-    return line
-
-def draw_candidates(draw_img, staff_cand):
-    colored_img = cv.cvtColor(draw_img.copy(), cv.COLOR_GRAY2RGB)
-    for cand in staff_cand:
-        x1,y1,x2,y2 = 0, cand[0], 40, cand[0]
-        cv.line(colored_img,(x1,y1),(x2,y2),(0,255,0),2)
-    return colored_img
-
-def draw_staff_line(draw_img, line):
-    for pt in line:
-        cv.circle(draw_img, (pt[1], pt[0]), 1,(0,255,0),-1)
-    return draw_img
-
+# constants
+IMAGE_SIZE = (1920, 1080)
+NUM_CHUNKS = 10
+T_STAFF_CAND = 0.15
+T_STAFF_MATCH = 0.5
+T_BAR_MATCH = 0.7
+T_END_MATCH = 0.5
+T_TIME_MATCH = 0.5
 
 if __name__ == "__main__":
     # Read specified image from file
-    img_file = sys.argv[1]
-    img = cv.imread(img_file, 0)
-    if img is None:
-        raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
+    img = read_image_from_args()
 
-    img = cv.resize(img, (1920, 1080), interpolation = cv.INTER_AREA)
+    # resize image
+    img = cv.resize(img, IMAGE_SIZE, interpolation = cv.INTER_AREA)
 
     # display original image
-    show_wait_destroy("Original image", img)
+    show_wait_destroy("Original Image", img)
 
     # binary threshold
     img = (cv.bitwise_not(binary_threshold(img))).astype(np.uint8)
-    show_wait_destroy("preprocessed image", img)
+    show_wait_destroy("Binary Threshold", img)
 
     # get rid of text, markings, etc
-    new_img = img.copy()
-    kernel = cv.getStructuringElement(cv.MORPH_CROSS, (3,3))
-    dilated = cv.dilate(new_img, kernel, iterations=1)
-    _, contours, hierarchy = cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    for contour in contours:
-        [x, y, w, h] = cv.boundingRect(contour)
-        #if w < 35 and h < 35:
-        #    continue
-        if (w < width(img) // 2):
-            cv.rectangle(img, (x, y), (x + w, y + h), (0, 0, 0), cv.FILLED)
+    img = remove_text(img)
+    show_wait_destroy("Text Removed", img)
 
-    show_wait_destroy("text removed", img)
-
+    # save preprocessed original image for later use
+    processed_img = img.copy()
 
     # create initial staff image
-    white_runs = []
-    black_runs = []
-    for i in range(width(img)):
-        wr, br = calc_runs(img[:, i], 255, 0)
-        white_runs.extend(wr)
-        black_runs.extend(br)
-
-    staff_height = np.median(black_runs)
-    staff_space = np.median(white_runs)
-
-    T_length = min(2.0 * staff_height, staff_height + staff_space)
-
-    for col in range(width(img)):
-        i = 0
-        while(i < height(img)):
-            while(i < height(img) and img[i][col] == 0):
-                i+=1
-            mark = i
-            while(i < height(img) and img[i][col] == 255):
-                i+=1
-            if (i - mark > T_length):
-                for j in range(mark, i):
-                    img[j][col] = 0
-        
-    show_wait_destroy("initial staff image", img)
+    staff_height, staff_space, T_length = estimate_staff_stats(img)
+    img = create_initial_staff_image(img, T_length)
+    show_wait_destroy("Initial Staff Image", img)
 
     # model line shape
-    staff_img = img.copy()
-    edges = cv.Canny(staff_img,50,150,apertureSize = 3)
-    minLineLength = 20
-    maxLineGap = 5
-    lines = cv.HoughLinesP(edges,1,np.pi/180,100,minLineLength=minLineLength,maxLineGap=maxLineGap)
-    if (lines is None):
-      raise RuntimeError("No staff lines found")
-    colored_img = cv.cvtColor(staff_img, cv.COLOR_GRAY2RGB)
-    for line in lines:
-        x1,y1,x2,y2 = line[0]
-        cv.line(colored_img,(x1,y1),(x2,y2),(0,255,0),2)
-
-    # calculate average staff line slope at every x pos
-    chunks = 10
-    chunk_size = height(img) // chunks
-    slopes = [[0 for _ in range(width(img))] for c in range(chunks)]
-    for i in range(width(img)):
-        s = [0 for _ in range(chunks)]
-        num = [0 for _ in range(chunks)]
-        for line in lines:
-            x1,y1,x2,y2 = line[0]
-            if (x1 < i and x2 > i) or (x1 < i and x2 > i):
-                for chunk in range(chunks):
-                    c1 = y1 // chunk_size
-                    c2 = y2 // chunk_size
-                    if (c1 >= chunk and c2 <= chunk) or (c2 >= chunk and c1 <= chunk):
-                        s[chunk] += (y2 - y1) / (x2 - x1)
-                        num[chunk] += 1
-
-        for j in range(chunks):
-            if num[j] > 0:
-                slopes[j][i] = s[j] / num[j]
-
+    colored_img, lines = find_lines(img)
     show_wait_destroy("lines", colored_img)
 
-    img_blank = img.copy()
-    k = 0
-    for s in slopes:
-        row = int(np.round((height(img_blank) // len(slopes)) * (k + .5)))
-        k += 1
-        line = calc_staff_line(s, row, img)
-        for pt in line:
-            img_blank[pt[0]][pt[1]] = 255
+    # calculate average staff line slope at every x pos
+    slopes, slope_img = calc_slopes(img, NUM_CHUNKS, lines)
+    show_wait_destroy("Average staff line orientation", slope_img)
 
-    show_wait_destroy("average staff line orientation", img_blank)
+    # find staff and display candidates
+    staff_candidates = find_staff_candidates(img, slopes, T_STAFF_CAND, T_length, NUM_CHUNKS, staff_height, staff_space)
 
-    T_staff_cand = .15
-    staff_candidates = []
-    for row in range(height(img)):
-        pts = calc_staff_line_chunks(slopes, row, img, chunk_size)
-        total_white = sum(1 if img[p[0]][p[1]] == 255 else 0 for p in pts)
-        if (total_white / width(img) > T_staff_cand):
-            if (len(staff_candidates) == 0
-            or (len(staff_candidates) > 0 and row - staff_candidates[-1][0] > staff_height / 3)):
-                staff_candidates.append((row, pts, total_white))
-            if (len(staff_candidates) > 0 and row - staff_candidates[-1][0] < staff_height / 3 and total_white > staff_candidates[-1][2]):
-                staff_candidates[-1] = (row, pts, total_white)
-
-
-    print([str(x[0]) + " " + str(x[2]) for x in staff_candidates])
-    #cand_img = draw_candidates(img, staff_candidates)
-    #show_wait_destroy("staff_candidates", cand_img)
     colored_img = cv.cvtColor(img.copy(), cv.COLOR_GRAY2RGB)
     for cand in staff_candidates:
-        colored_img = draw_staff_line(colored_img, cand[1])
+        colored_img = draw_staff_line(colored_img, cand[0], cand[1])
+    show_wait_destroy("Staff candidates", colored_img)
 
-    show_wait_destroy("candidates", colored_img)
-
-    
-
-    
-
-    # T_staff_lines = 10
-    # k = 3
-
-    # list_o = []
-    # ccs = []
-    # for col in range(width(img)):
-    #     cc = []
-    #     row = 0
-    #     while(row < height(img)):
-    #         while(row < height(img) and img[row][col] == 0):
-    #             row+=1
-    #         mark = row
-    #         while(row < height(img) and img[row][col] == 255):
-    #             row+=1
-    #         #cc.append((mark, row - 1)) # inclusive
-    #         cc.append(mark + ((row - mark) // 2))
-    #     ccs.append(cc)
-
-    # missing_cols = []
-    # for i in range(width(img) - 2):
-    #     if (len(ccs[i]) >= T_staff_lines):
-    #         oriens = []
-    #         for center in ccs[i]:
-    #             o = 0.0
-    #             jcol = 1.0
-    #             for j in range(i + 1, i + k + 1):
-    #                 if (j < width(img) and len(ccs[j]) > 0):
-    #                    o += (1.0/jcol) * dist_to_nearest(center, ccs[j])
-    #                 jcol+=1.0
-    #             oriens.append(o)
-    #         #o_i = ((1.0 / len(oriens)) * sum(oriens))
-    #         o_i = np.median(oriens)
-    #         list_o.append(o_i)
-    #     else:
-    #         list_o.append(0.0)
-    #         missing_cols.append(i)
+    # remove staff from original (text removed) image
+    staff_removed_img = remove_staff(processed_img.copy(), staff_candidates, T_length)
+    show_wait_destroy("Staff removed", staff_removed_img)
 
 
-    # print(sum(list_o))
-    # print(len(missing_cols))
+    est_total_staff_height = (4 * staff_space) + (5 * staff_height) #80
+    colored = cv.cvtColor(staff_removed_img.copy(), cv.COLOR_GRAY2RGB)
+    #cv.rectangle(colored, (0,260), (200, 340), (0, 255, 0), cv.FILLED)
+    #show_wait_destroy("color", colored) 
 
-    # img_blank = img.copy()
-    # row = height(img_blank) / 2.0
-    # col = 0
-    # for orientation in list_o:
-    #     img_blank[int(np.round(row))][col] = 255
-    #     row += orientation
-    #     col += 1
+    # remove isolated pixels
+    img = remove_isolated_pixels(staff_removed_img)
+    show_wait_destroy("isolated pixels removed", img)
 
-    # show_wait_destroy("staff orientations", img_blank)
+    # remove staff thingys
+    template = cv.imread('./images/staff_template.jpg', 0)
+    template = imutils.resize(template, height=int(est_total_staff_height * 2))
+    img, _ = remove_template_matches(img, template, T_STAFF_MATCH)
+
+    # find bar lines
+    template = cv.imread('./images/bar_template.jpg', 0)  
+    img, bars = remove_template_matches(img, template, T_BAR_MATCH)
+
+    # remove 4/4 time and end markers
+    template = cv.imread('./images/end.jpg', 0)
+    img, end = remove_template_matches(img, template, T_END_MATCH)
+    if (len(end) > 0):
+        end = end[0]
+
+    template = cv.imread('./images/time_template.jpg', 0)
+    img, _ = remove_template_matches(img, template, T_TIME_MATCH)
+
+    show_wait_destroy("Removed extraneous markings", img)
+
+    # mach quarter/half notes first
+    template = cv.imread('./images/vertical_quarter_template.jpg', 0)
+    whole_note_img = img.copy()
+    notes = []
+    colored_img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
+
+    for x, y, w, h in calc_boxes(template, 0.25, img):
+        if (np.sum(img[y:y+h+1, x:x+w+1]) / 255 > 300) and \
+            (np.sum(img[y:y+(h//2)+1, x:x+w+1]) < np.sum(img[y+(h//2):y+h+1, x:x+w+1])) and \
+            (np.sum(img[y:y+(h//2)+1, x:x+w+1]) != 0) and \
+            (np.sum(img[y+(h//2):y+h+1, x:x+w+1]) != 0):
+            cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
+            cv.rectangle(whole_note_img, (x,y), (x+w, y+h), (0, 0, 0), -1) # black out quarter/half notes for whole note detection
+            cv.circle(colored_img, (x+25,y+85), 5, (0, 0, 255), -1)
+            if np.sum(img[y+80:y+90,x+20:x+30]) / 255 > 85: # half notes have whole in the middle
+                notes.append((x+25,y+85, "quarter"))
+            else:
+                notes.append((x+25,y+85, "half"))
+
+    template = cv.imread('./images/whole_note_template.jpg', 0)
+    for x, y, w, h in calc_boxes(template, 0.5, whole_note_img):
+        cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
+        cv.circle(colored_img, (x+45,y+28), 5, (0, 0, 255), -1)
+        notes.append((x+45,y+28, "whole"))
+
+    show_wait_destroy("notes", colored_img)
+
+    # order notes and determine pitch
+    ordered_notes = []
+    notes.sort(key = lambda note: note[0]) # sort by x position
+
+    thresholds = [-1.8, -0.8, 0.5, 1.8, 2.5] # notes are not spaced quite linearly
+
+    for staff_index in range(4,len(staff_candidates), 5):
+        notes_in_staff = [note for note in notes if note[1] < staff_candidates[staff_index][0] + (staff_space * 2) + staff_height and note[1] > staff_candidates[staff_index][0] - ((staff_space + staff_height)*5)]
+        for note in notes_in_staff:
+            staff_base = calc_staff(slopes, staff_candidates[staff_index][0], note[0], height(img) // NUM_CHUNKS)
+            #dist_above = (staff + staff_space) - note[1]
+            #print(staff, staff_candidates[staff_index][0], dist_above, note[2])
+            #print()
+            #print("Note y: ", note[1])
+            #print("Staff base: ", staff_base)
+            pitch = ((staff_base - note[1]) / (staff_space + staff_height))*2.0
+            pitch_index = 0
+            while(pitch_index < len(thresholds) - 1 and pitch >= thresholds[pitch_index]):
+                pitch_index+=1
+
+            ordered_notes.append((pitch_index, note[2], 0, pitch))
+
+
+    for note in ordered_notes:
+        print(note)
+
+# OUTPUT
+# pitch_index: integer starting at 0 = middle C
+# type = {"quarter", "half", "whole"}
+# delta = 0 (no rests rn)
+# pitch = for debugging purposes only (raw pitch value)
+
+
+
+
 
 
