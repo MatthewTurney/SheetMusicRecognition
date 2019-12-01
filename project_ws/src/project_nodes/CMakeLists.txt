@@ -8,10 +8,16 @@ project(project_nodes)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  rospy
+  std_msgs
   rosserial_arduino
   rosserial_client
   rosserial_python
 )
+
+add_message_files(FILES Music.msg Note.msg)
+generate_messages(DEPENDENCIES std_msgs)
+catkin_package(CATKIN_DEPENDS rospy std_msgs)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -105,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES project_nodes
-#  CATKIN_DEPENDS rosserial_arduino rosserial_client rosserial_python
+  CATKIN_DEPENDS rosserial_arduino rosserial_client rosserial_python
 #  DEPENDS system_lib
 )
 
