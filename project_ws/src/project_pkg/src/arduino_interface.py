@@ -19,6 +19,7 @@ def main():
     key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
     down_val = 80;
     up_val = 90;
+    bpm = 40;
 
     rospy.init_node('arduino_interface', anonymous=True)
     rate = rospy.Rate(10) # 10hz
@@ -34,7 +35,7 @@ def main():
 
         rate.sleep()
 
-        while time.time() - start_time < note.rest_before:
+        while time.time() - start_time < note.rest_before * 60 / bpm:
             rate.sleep()
 
         pub2.publish(down_val)
@@ -44,7 +45,7 @@ def main():
 
         rate.sleep()
 
-        while time.time() - start_time < note.duration:
+        while time.time() - start_time < note.duration * 60 / bpm:
             rate.sleep()
 
         pub2.publish(up_val)
