@@ -162,7 +162,7 @@ foreach(t ${project_nodes_EXPORTED_TARGETS})
   endif()
 endforeach()
 
-set(depends "")
+set(depends "rosserial_arduino;rosserial_client;rosserial_python")
 foreach(depend ${depends})
   string(REPLACE " " ";" depend_list ${depend})
   # the package name of the dependency must be kept in a unique variable so that it is not overwritten in recursive calls
@@ -191,7 +191,7 @@ foreach(depend ${depends})
   list(APPEND project_nodes_EXPORTED_TARGETS ${${project_nodes_dep}_EXPORTED_TARGETS})
 endforeach()
 
-set(pkg_cfg_extras "")
+set(pkg_cfg_extras "project_nodes-msg-extras.cmake")
 foreach(extra ${pkg_cfg_extras})
   if(NOT IS_ABSOLUTE ${extra})
     set(extra ${project_nodes_DIR}/${extra})
