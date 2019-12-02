@@ -3,6 +3,7 @@ import pickle
 from std_msgs.msg import UInt16
 from project_pkg.msg import Music, Note
 """
+# hot cross buns
 song = [['E', 1.0/4, 0],
         ['D', 1.0/4, 0],
         ['C', 1.0/2, 0],
@@ -22,6 +23,7 @@ song = [['E', 1.0/4, 0],
         ['C', 1.0/2, 0]]
 """
 
+# twinkle twinkle
 song = [['C', 1.0/4, 0],
         ['C', 1.0/4, 0],
         ['G', 1.0/4, 0],
@@ -79,5 +81,5 @@ for n in song:
 
 music = Music(lst)
 
-with open('twinkle_twinkle.music', 'wb') as music_file:
+with open('music/twinkle_twinkle.music', 'wb') as music_file:
     pickle.dump(music, music_file)

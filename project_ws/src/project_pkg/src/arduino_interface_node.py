@@ -3,25 +3,23 @@
 import rospy
 import pickle
 import time
+import os
+import sys
 from std_msgs.msg import UInt16
 from project_pkg.msg import Music, Note
- 
+
+key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
+down_val = 80;
+up_val = 90;
+bpm = 60;
+
 def callback(data):
-    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
 
-def main():
-
-    music = get_music()
+    music = data
+    print(music)
 
     pub1 = rospy.Publisher('servo1', UInt16, queue_size=10)
     pub2 = rospy.Publisher('servo2', UInt16, queue_size=10)
-
-    key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
-    down_val = 80;
-    up_val = 90;
-    bpm = 40;
-
-    rospy.init_node('arduino_interface', anonymous=True)
     rate = rospy.Rate(10) # 10hz
 
     pub2.publish(up_val)
@@ -51,9 +49,12 @@ def main():
         pub2.publish(up_val)
         #print("pub2: up")
 
-def get_music():
-    with open('twinkle_twinkle.music', 'rb') as music_file:
-        return pickle.load(music_file)
+def main():
+
+    rospy.init_node('arduino_interface', anonymous=True)
+    rospy.Subscriber('music', Music, callback)
+
+    rospy.spin()
 
 if __name__ == '__main__':
     try:
