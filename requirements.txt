@@ -1,2 +1,6 @@
 ros-kinetic-rosserial
 ros-kinstic-rosserial-arduino
+imutils
+python 3.6.1
+Multi-Template-Matching
+'scikit-image<0.15'
