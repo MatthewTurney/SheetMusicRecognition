@@ -38,3 +38,9 @@ def read_image_from_args():
     if img is None:
         raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
     return img
+
+def read_image_from_file(filename):
+    img = cv.imread(filename, 0)
+    if img is None:
+        raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
+    return img
