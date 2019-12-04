@@ -4,3 +4,15 @@ git clone https://github.com/valmik/ros_setup
 cd ros_setup/
 chmod +x ros_install.bash
 ./ros_install.bash
+cd ..
+git clone https://github.com/MatthewTurney/SheetMusicRecognition
+sudo apt install python-pip
+pip install imutils
+sudo apt remove python-numpy
+pip install numpy==1.16.4
+pip install --no-dependencies opencv-python
+pip install --no-dependencies Multi-Template-Matching
+pip install --no-dependencies pandas==0.19.2
+pip install --no-dependencies scipy==1.1.0
+pip install --no-dependencies scikit-image==0.14.3
+pip install --no-dependencies PyWavelets==0.5.2
