@@ -1,1 +1,6 @@
 reboot
+sudo apt install git
+git clone https://github.com/valmik/ros_setup
+cd ros_setup/
+chmod +x ros_install.bash
+./ros_install.bash
