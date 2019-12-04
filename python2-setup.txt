@@ -20,3 +20,5 @@ cd SheetMusicRecognition/project_ws/src
 git clone https://github.com/ros-drivers/rosserial
 sudo apt-get install ros-kinetic-rosserial-arduino
 sudo apt-get install ros-kinetic-rosserial
+dmesg |grep tty
+sudo usermod -a -G dialout $USER
