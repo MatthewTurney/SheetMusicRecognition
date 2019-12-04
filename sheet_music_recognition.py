@@ -78,8 +78,6 @@ def process_sheet_music(filename, show_steps = True):
 
     est_total_staff_height = (4 * staff_space) + (5 * staff_height)
     colored = cv.cvtColor(staff_removed_img.copy(), cv.COLOR_GRAY2RGB)
-    #cv.rectangle(colored, (0,260), (200, 340), (0, 255, 0), cv.FILLED)
-    #show_wait_destroy("color", colored) 
 
     # remove isolated pixels
     img = remove_isolated_pixels(staff_removed_img)
@@ -108,7 +106,7 @@ def process_sheet_music(filename, show_steps = True):
     if show_steps:
         show_wait_destroy("Removed extraneous markings", img)
 
-    # mach quarter/half notes first
+    # match quarter/half notes first
     template = cv.imread('./images/vertical_quarter_template.jpg', 0)
     whole_note_img = img.copy()
     notes = []
@@ -127,6 +125,8 @@ def process_sheet_music(filename, show_steps = True):
             else:
                 notes.append((x+25,y+85, "half"))
 
+
+    # match whole notes
     template = cv.imread('./images/whole_note_template.jpg', 0)
     for x, y, w, h in calc_boxes(template, T_WHOLE_MATCH, whole_note_img):
         cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
