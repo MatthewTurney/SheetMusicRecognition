@@ -4,3 +4,6 @@ Multi-Template-Matching
 imutils
 opencv-python
 numpy
+imutils
+python 3.6.1
+
