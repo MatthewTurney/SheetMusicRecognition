@@ -119,12 +119,12 @@ def calc_slopes(img, chunks, lines):
                     c1 = y1 // chunk_size
                     c2 = y2 // chunk_size
                     if (c1 >= chunk and c2 <= chunk) or (c2 >= chunk and c1 <= chunk):
-                        s[chunk] += (y2 - y1) / (x2 - x1)
+                        s[chunk] += float(y2 - y1) / float(x2 - x1)
                         num[chunk] += 1
 
         for j in range(chunks):
             if num[j] > 0:
-                slopes[j][i] = s[j] / num[j]
+                slopes[j][i] = float(s[j]) / float(num[j])
 
 
     img_blank = img.copy()
@@ -154,7 +154,7 @@ def find_staff_candidates(img, slopes, T_staff_cand, T_length, num_chunks, staff
         pts = calc_staff_line_chunks(slopes, row, img, chunk_size)
         if pts is not None:
             total_white = sum(1 if img[p[0]][p[1]] == 255 else 0 for p in pts)
-            if (total_white / width(img) > T_staff_cand):
+            if (float(total_white) / width(img) > T_staff_cand):
                 if (len(staff_candidates) == 0
                 or (len(staff_candidates) > 0 and row - staff_candidates[-1][0] > T_length)):
                     staff_candidates.append((row, pts, total_white))
