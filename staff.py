@@ -16,7 +16,7 @@ def calc_staff_line(slopes, row, img):
     return line
 
 def calc_staff_line_chunks(slopes, row, img, chunk_size):
-    white_seen = False
+    white_seen = 0
     col = 0
     r = row
     line = []
@@ -24,13 +24,11 @@ def calc_staff_line_chunks(slopes, row, img, chunk_size):
         if (int(np.round(r)) < height(img) and col < width(img)):
             line.append((int(np.round(r)), col))
             if(img[int(np.round(r))][col] == 255):
-                white_seen = True
+                white_seen += 1
         if (int(r // chunk_size) < len(slopes) and int(r // chunk_size) >= 0):
             r += slopes[int(r // chunk_size)][col]
         col += 1
-    if not white_seen:
-        return None
-    return line
+    return line, white_seen
 
 def calc_staff(chunked_slopes, row, col, chunk_size):
     chunk = row // chunk_size
@@ -147,13 +145,12 @@ def find_staff_candidates(img, slopes, T_staff_cand, T_length, num_chunks, staff
     for chunk in range(num_chunks):
         chunk_start = chunk * chunk_size
         chunk_end = min(((chunk + 1) * chunk_size), height(img))
-        if (np.sum(img[chunk_start : chunk_end][:]) > 0):
-            rows.extend([i for i in range(chunk_start, chunk_end)])
+        #if (np.sum(img[chunk_start : chunk_end][:]) > 0):
+        rows.extend([i for i in range(chunk_start, chunk_end)])
 
     for row in rows:
-        pts = calc_staff_line_chunks(slopes, row, img, chunk_size)
-        if pts is not None:
-            total_white = sum(1 if img[p[0]][p[1]] == 255 else 0 for p in pts)
+        pts, total_white = calc_staff_line_chunks(slopes, row, img, chunk_size)
+        if total_white > 0:
             if (float(total_white) / width(img) > T_staff_cand):
                 if (len(staff_candidates) == 0
                 or (len(staff_candidates) > 0 and row - staff_candidates[-1][0] > T_length)):
