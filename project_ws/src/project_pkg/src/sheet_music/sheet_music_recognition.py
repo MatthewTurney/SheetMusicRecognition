@@ -78,8 +78,6 @@ def process_sheet_music(filename, show_steps = True):
 
     est_total_staff_height = (4 * staff_space) + (5 * staff_height)
     colored = cv.cvtColor(staff_removed_img.copy(), cv.COLOR_GRAY2RGB)
-    #cv.rectangle(colored, (0,260), (200, 340), (0, 255, 0), cv.FILLED)
-    #show_wait_destroy("color", colored) 
 
     # remove isolated pixels
     img = remove_isolated_pixels(staff_removed_img)
@@ -87,29 +85,29 @@ def process_sheet_music(filename, show_steps = True):
         show_wait_destroy("isolated pixels removed", img)
 
     # remove staff thingys
-    template = cv.imread('./images/staff_template.jpg', 0)
+    template = cv.imread('sheet_music/images/staff_template.jpg', 0)
     template = imutils.resize(template, height=int(est_total_staff_height * 2))
     img, _ = remove_template_matches(img, template, T_STAFF_MATCH)
 
     # find bar lines
-    template = cv.imread('./images/bar_template.jpg', 0)  
+    template = cv.imread('sheet_music/images/bar_template.jpg', 0)  
     img, bars = remove_template_matches(img, template, T_BAR_MATCH)
 
     # remove 4/4 time and end markers
-    template = cv.imread('./images/end.jpg', 0)
+    template = cv.imread('sheet_music/images/end.jpg', 0)
     template = imutils.resize(template, height=int(est_total_staff_height * 1.5))
     img, end = remove_template_matches(img, template, T_END_MATCH)
     if (len(end) > 0):
         end = end[0]
 
-    template = cv.imread('./images/time_template.jpg', 0)
+    template = cv.imread('sheet_music/images/time_template.jpg', 0)
     img, _ = remove_template_matches(img, template, T_TIME_MATCH)
 
     if show_steps:
         show_wait_destroy("Removed extraneous markings", img)
 
-    # mach quarter/half notes first
-    template = cv.imread('./images/vertical_quarter_template.jpg', 0)
+    # match quarter/half notes first
+    template = cv.imread('sheet_music/images/vertical_quarter_template.jpg', 0)
     whole_note_img = img.copy()
     notes = []
     colored_img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
@@ -127,7 +125,9 @@ def process_sheet_music(filename, show_steps = True):
             else:
                 notes.append((x+25,y+85, "half"))
 
-    template = cv.imread('./images/whole_note_template.jpg', 0)
+
+    # match whole notes
+    template = cv.imread('sheet_music/images/whole_note_template.jpg', 0)
     for x, y, w, h in calc_boxes(template, T_WHOLE_MATCH, whole_note_img):
         cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
         cv.circle(colored_img, (x+45,y+28), 5, (0, 0, 255), -1)

@@ -116,7 +116,7 @@ if(NOT "/home/eecs106a/SheetMusicRecognition/project_ws/src/rosserial/rosserial_
   endforeach()
 endif()
 
-set(libraries "")
+set(libraries "rosserial_server_lookup")
 foreach(library ${libraries})
   # keep build configuration keywords, target names and absolute libraries as-is
   if("${library}" MATCHES "^(debug|optimized|general)$")
