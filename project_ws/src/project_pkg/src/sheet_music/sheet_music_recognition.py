@@ -166,7 +166,7 @@ def process_sheet_music(filename, show_steps = True):
             #print()
             #print("Note y: ", note[1])
             #print("Staff base: ", staff_base)
-            pitch = ((staff_base - note[1]) / (staff_space + staff_height))*2.0
+            pitch = float(((staff_base - note[1])) / float((staff_space + staff_height)))*2.0
             pitch_index = 0
             while(pitch_index < len(thresholds) - 1 and pitch >= thresholds[pitch_index]):
                 pitch_index+=1

@@ -14,7 +14,7 @@ from project_pkg.msg import Music, Note
 
 def main():
 
-    music = get_music2()
+    music = get_music()
     print(music)
 
     pub = rospy.Publisher('music', Music, queue_size=10)
