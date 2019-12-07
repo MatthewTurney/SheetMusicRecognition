@@ -10,8 +10,10 @@ from project_pkg.msg import Music, Note
 
 key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
 down_val = 80;
-up_val = 90;
+up_val = 100;
 bpm = 60;
+move_delay = 0.15;
+up_delay = 0.0;
 
 def callback(data):
 
@@ -26,14 +28,22 @@ def callback(data):
 
     for note in music.notes:
 
+        note.rest_before += move_delay + up_delay
+        note.duration -= (move_delay + up_delay)
+
         start_time = time.time()
+
+        rate.sleep()
+
+        while time.time() - up_delay < note.rest_before:
+            rate.sleep()
 
         pub1.publish(key_vals[note.key])
         print("pub1: " + str(key_vals[note.key]))
 
         rate.sleep()
 
-        while time.time() - start_time < note.rest_before * 60 / bpm:
+        while time.time() - start_time < note.rest_before:
             rate.sleep()
 
         pub2.publish(down_val)
@@ -43,7 +53,7 @@ def callback(data):
 
         rate.sleep()
 
-        while time.time() - start_time < note.duration * 60 / bpm:
+        while time.time() - start_time < note.duration * 240 / bpm:
             rate.sleep()
 
         pub2.publish(up_val)
