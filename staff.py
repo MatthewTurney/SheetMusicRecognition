@@ -89,11 +89,9 @@ def create_initial_staff_image(img, T_length):
 
     return img_copy
 
-def find_lines(img):
+def find_lines(img, minLineLength, maxLineGap):
     staff_img = img.copy()
     edges = cv.Canny(staff_img,50,150,apertureSize = 3)
-    minLineLength = 75
-    maxLineGap = 15
     lines = cv.HoughLinesP(edges,1,np.pi/180,100,minLineLength=minLineLength,maxLineGap=maxLineGap)
     if (lines is None):
       raise RuntimeError("No staff lines found")
@@ -136,17 +134,19 @@ def calc_slopes(img, chunks, lines):
 
     return slopes, img_blank
 
-def find_staff_candidates(img, slopes, T_staff_cand, T_length, num_chunks, staff_height, staff_space):
+def find_staff_candidates(img, slopes, T_staff_cand, T_length, num_chunks, staff_height, staff_space, min_y, max_y):
     staff_candidates = []
 
     # only consider rows in chunks that contain white pixels (perf improvement)
     chunk_size = height(img) // num_chunks
-    rows = []
-    for chunk in range(num_chunks):
-        chunk_start = chunk * chunk_size
-        chunk_end = min(((chunk + 1) * chunk_size), height(img))
+    #rows = []
+    #for chunk in range(num_chunks):
+    #    chunk_start = chunk * chunk_size
+    #    chunk_end = min(((chunk + 1) * chunk_size), height(img))
         #if (np.sum(img[chunk_start : chunk_end][:]) > 0):
-        rows.extend([i for i in range(chunk_start, chunk_end)])
+    #    rows.extend([i for i in range(chunk_start, chunk_end)])
+
+    rows = [i for i in range(min_y - 50, max_y + 50)]
 
     for row in rows:
         pts, total_white = calc_staff_line_chunks(slopes, row, img, chunk_size)
@@ -206,6 +206,24 @@ def remove_staff(img, staff_candidates, T_length):
 
     return staff_removed
         
+def draw_staff(img, staff_candidates):
+    colored_img = img.copy()
+    #colored_img = cv.cvtColor(staff_img, cv.COLOR_GRAY2RGB)
+    for cand in staff_candidates:
+        for row, col in cand[1]:
+            colored_img[row, col][0] = 0
+            colored_img[row, col][1] = 255
+            colored_img[row, col][2] = 0
+
+            colored_img[row + 1, col][0] = 0
+            colored_img[row + 1, col][1] = 255
+            colored_img[row + 1, col][2] = 0
+
+            colored_img[row - 1, col][0] = 0
+            colored_img[row - 1, col][1] = 255
+            colored_img[row - 1, col][2] = 0
+
+    return colored_img
 
 
 

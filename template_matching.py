@@ -6,7 +6,7 @@ import MTM
 def calc_boxes(template, threshold, img):
     try:
         hits = MTM.matchTemplates([("staff", template)], img, method=cv.TM_CCOEFF_NORMED, 
-            N_object=float("inf"), score_threshold=threshold, maxOverlap=0.25, searchBox=None)
+            N_object=float("inf"), score_threshold=threshold, maxOverlap=0.2, searchBox=None)
         return hits["BBox"]
     except KeyError as ke:
         print(str(ke))
