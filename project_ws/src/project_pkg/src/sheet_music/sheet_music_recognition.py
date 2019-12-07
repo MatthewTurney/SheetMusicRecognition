@@ -17,14 +17,17 @@ T_STAFF_MATCH = 0.5
 T_BAR_MATCH = 0.7
 T_END_MATCH = 0.6
 T_TIME_MATCH = 0.6
-T_QUARTER_MATCH = 0.3
-T_WHOLE_MATCH = 0.5
-T_NOTES = [-1.9, -0.8, 0.3, 1.6, 2.3, 3.2, 4.2]
+T_QUARTER_MATCH = 0.15
+T_WHOLE_MATCH = 0.4
+#T_NOTES = [-1.9, -0.8, 0.3, 1.6, 2.3, 3.2, 4.2]
+T_NOTES = [-1.8, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5]
+minLineLength = 75
+maxLineGap = 15
 
 def process_sheet_music(filename, show_steps = True):
     # read image from file
     img = read_image_from_file(filename)
-
+    
     # resize image
     img = cv.resize(img, IMAGE_SIZE, interpolation = cv.INTER_AREA)
 
@@ -47,14 +50,29 @@ def process_sheet_music(filename, show_steps = True):
 
     # create initial staff image
     staff_height, staff_space, T_length = estimate_staff_stats(img)
+    print(staff_height)
+    print(staff_space)
     img = create_initial_staff_image(img, T_length)
     if show_steps:
         show_wait_destroy("Initial Staff Image", img)
 
     # model line shape
-    colored_img, lines = find_lines(img)
+    minLineLength = 75
+    maxLineGap = 15
+    colored_img, lines = find_lines(img, minLineLength, maxLineGap)
+    min_y = min([l[0][1] for l in lines])
+    max_y = max([l[0][1] for l in lines])
     if show_steps:
         show_wait_destroy("lines", colored_img)
+
+    #test_img = np.zeros((colored_img.shape[0], colored_img.shape[1], 3), np.uint8)
+    #for line in lines:
+    #    x1,y1,x2,y2 = line[0]
+    #    cv.line(test_img,(x1,y1),(x2,y2),(0,255,0),2)
+
+    #show_wait_destroy("test", test_img)
+
+    #raise RuntimeError("DONE")
 
     # calculate average staff line slope at every x pos
     slopes, slope_img = calc_slopes(img, NUM_CHUNKS, lines)
@@ -62,7 +80,7 @@ def process_sheet_music(filename, show_steps = True):
         show_wait_destroy("Average staff line orientation", slope_img)
 
     # find staff and display candidates
-    staff_candidates = find_staff_candidates(img, slopes, T_STAFF_CAND, T_length, NUM_CHUNKS, staff_height, staff_space)
+    staff_candidates = find_staff_candidates(img, slopes, T_STAFF_CAND, T_length, NUM_CHUNKS, staff_height, staff_space, min_y, max_y)
 
     colored_img = cv.cvtColor(img.copy(), cv.COLOR_GRAY2RGB)
     for cand in staff_candidates:
@@ -78,8 +96,6 @@ def process_sheet_music(filename, show_steps = True):
 
     est_total_staff_height = (4 * staff_space) + (5 * staff_height)
     colored = cv.cvtColor(staff_removed_img.copy(), cv.COLOR_GRAY2RGB)
-    #cv.rectangle(colored, (0,260), (200, 340), (0, 255, 0), cv.FILLED)
-    #show_wait_destroy("color", colored) 
 
     # remove isolated pixels
     img = remove_isolated_pixels(staff_removed_img)
@@ -108,25 +124,48 @@ def process_sheet_music(filename, show_steps = True):
     if show_steps:
         show_wait_destroy("Removed extraneous markings", img)
 
-    # mach quarter/half notes first
-    template = cv.imread('./images/vertical_quarter_template.jpg', 0)
+    # match quarter/half notes first
+    template = cv.imread('./images/vertical_quarter_template5.jpg', 0)
     whole_note_img = img.copy()
     notes = []
     colored_img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
 
+    def fix_center(img_cropped, h):
+        img_cropped = img_cropped.copy()
+        h = h - 1
+        while (h > 0):
+            for x in range(img_cropped.shape[1]):
+                if img_cropped[h, x] == 255:
+                    return h
+            h -= 1
+        return 0
+            
     for x, y, w, h in calc_boxes(template, T_QUARTER_MATCH, img):
         if (np.sum(img[y:y+h+1, x:x+w+1]) / 255 > 300) and \
             (np.sum(img[y:y+(h//2)+1, x:x+w+1]) < np.sum(img[y+(h//2):y+h+1, x:x+w+1])) and \
             (np.sum(img[y:y+(h//2)+1, x:x+w+1]) != 0) and \
             (np.sum(img[y+(h//2):y+h+1, x:x+w+1]) != 0):
-            cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
-            cv.rectangle(whole_note_img, (x,y), (x+w, y+h), (0, 0, 0), -1) # black out quarter/half notes for whole note detection
-            cv.circle(colored_img, (x+25,y+85), 5, (0, 0, 255), -1)
-            if np.sum(img[y+80:y+90,x+20:x+30]) / 255 > 85: # half notes have whole in the middle
-                notes.append((x+25,y+85, "quarter"))
-            else:
-                notes.append((x+25,y+85, "half"))
+            cv.rectangle(whole_note_img, (x,y-50), (x+w, y+h), (0, 0, 0), -1) # black out quarter/half notes for whole note detection
+            #cv.circle(colored_img, (x+25,y+85), 5, (0, 0, 255), -1)
+            new_vertical_offset = fix_center(img[y:y+h, x:x+w], h)
+            cx = x + 30
+            cy = y+new_vertical_offset-8
+            cv.circle(colored_img, (cx, cy), 4, (0, 0, 255), -1)
 
+            if np.sum(img[y-5:y+5, x-10:x+w+10]) / 255 > 100:
+                notes.append((cx,cy, "eighth"))
+                cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 0, 255), 2)
+            elif np.sum(img[cy:cy+3,cx-5:cx+5]) / 255 > 25: # half notes have hole in the middle
+                notes.append((cx,cy, "quarter"))
+                cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
+            else:
+                notes.append((cx,cy, "half"))
+                cv.rectangle(colored_img, (x,y), (x+w, y+h), (255, 0, 0), 2)
+
+                #notes.append((x + 25, y+new_vertical_offset, "half"))
+
+
+    # match whole notes
     template = cv.imread('./images/whole_note_template.jpg', 0)
     for x, y, w, h in calc_boxes(template, T_WHOLE_MATCH, whole_note_img):
         cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
