@@ -8,9 +8,9 @@ import sys
 from std_msgs.msg import UInt16
 from project_pkg.msg import Music, Note
 
-key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
-down_val = 80
-up_val = 100
+key_vals = [113, 105, 98, 90, 84, 76, 68] #C, D, E, F, G, A, B
+down_val = 73
+up_val = 110
 bpm = 60
 move_delay = 0.15
 up_delay = 0.0
