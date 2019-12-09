@@ -6,7 +6,7 @@ import time
 import os
 import sys
 from sheet_music.sheet_music_recognition import process_sheet_music
-
+from project_pkg.msg import Music, Note
 from std_msgs.msg import UInt16, Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 
 def main():
@@ -14,10 +14,10 @@ def main():
     music = get_music2()
     print(music)
 
-    pub = rospy.Publisher('robot', Float32MultiArray, queue_size=10)
+    pub = rospy.Publisher('music', Music, queue_size=10)
 
     rospy.init_node('music_sender', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+    rate = rospy.Rate(100) # 10hz
 
     pub.publish(music)
 
@@ -28,8 +28,8 @@ def get_music():
 
     lst = []
     for n in msg:
-        lst.extend([n[0], string_to_duration[n[1]], 0])
-
+        lst.append(Note(n[0], string_to_duration[n[1]], 0))
+    """
     music = Float32MultiArray()
     music.layout.dim.append(MultiArrayDimension())
     music.layout.dim.append(MultiArrayDimension())
@@ -41,6 +41,9 @@ def get_music():
     music.layout.dim[1].stride = 3
     music.layout.data_offset = 0
     music.data = lst
+    """
+
+    music = Music(lst)
 
     with open('music_msg.music', 'wb') as music_file:
     	pickle.dump(music, music_file)

@@ -9,11 +9,12 @@ from std_msgs.msg import UInt16
 from project_pkg.msg import Music, Note
 
 key_vals = [120, 110, 100, 90, 80, 70, 60, 50] #C, D, E, F, G, A, B, C
-down_val = 80;
-up_val = 100;
-bpm = 60;
-move_delay = 0.15;
-up_delay = 0.0;
+down_val = 80
+up_val = 100
+bpm = 60
+move_delay = 0.15
+up_delay = 0.0
+initial_delay = 1.0
 
 def callback(data):
 
@@ -24,7 +25,16 @@ def callback(data):
     pub2 = rospy.Publisher('servo2', UInt16, queue_size=10)
     rate = rospy.Rate(10) # 10hz
 
+    pub1.publish(key_vals[music.notes[0].key])
+    print("pub1: " + str(key_vals[music.notes[0].key]))
     pub2.publish(up_val)
+
+    start_time = time.time()
+
+    rate.sleep()
+
+    while time.time() - start_time < initial_delay:
+        rate.sleep()
 
     for note in music.notes:
 
