@@ -19,7 +19,7 @@ g2
 Ntp8
 Rp9
 (lp10
-I3
+I2
 aF0.5
 aI0
 abag0
@@ -38,7 +38,7 @@ Ntp14
 Rp15
 (lp16
 I0
-aI1
+aF1.0
 aI0
 abag0
 (g7
@@ -65,7 +65,7 @@ Ntp23
 Rp24
 (lp25
 I0
-aI1
+aF1.0
 aI0
 abag0
 (g7
@@ -164,6 +164,6 @@ Ntp56
 Rp57
 (lp58
 I0
-aI1
+aF1.0
 aI0
 abaab.
