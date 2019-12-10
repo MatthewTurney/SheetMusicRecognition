@@ -24,7 +24,7 @@ def main():
 def get_music():
 
     string_to_duration = {'eighth': 1.0/8, 'quarter': 1.0 / 4, 'half': 1.0 / 2, 'whole': 1.0}
-    msg = process_sheet_music('sheet_music/images/hcb.jpg')
+    msg = process_sheet_music('sheet_music/images/alphabet_song.jpg')
 
     lst = []
     for n in msg:
@@ -45,14 +45,14 @@ def get_music():
 
     music = Music(lst)
 
-    with open('music_msg.music', 'wb') as music_file:
+    with open('alphabet_song.music', 'wb') as music_file:
     	pickle.dump(music, music_file)
 
     return music
 
 
 def get_music2():
-    with open('music_msg.music', 'rb') as music_file:
+    with open('alphabet_song.music', 'rb') as music_file:
         return pickle.load(music_file)
 
 if __name__ == '__main__':

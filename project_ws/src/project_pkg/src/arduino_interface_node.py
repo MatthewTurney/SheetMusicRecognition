@@ -11,12 +11,18 @@ from project_pkg.msg import Music, Note
 key_vals = [113, 105, 98, 90, 84, 76, 68] #C, D, E, F, G, A, B
 down_val = 73
 up_val = 110
+bpm = 120
 bpm = 60
 move_delay = 0.15
 up_delay = 0.0
 initial_delay = 1.0
 
-def callback(data):
+def pot_callback(data):
+    global bpm
+    bpm = data.data
+    print('bpm: ' + str(bpm))
+
+def music_callback(data):
 
     music = data
     print(music)
@@ -72,7 +78,8 @@ def callback(data):
 def main():
 
     rospy.init_node('arduino_interface', anonymous=True)
-    rospy.Subscriber('music', Music, callback)
+    rospy.Subscriber('music', Music, music_callback)
+    rospy.Subscriber('pot', UInt16, pot_callback)
 
     rospy.spin()
 
