@@ -8,13 +8,12 @@ import sys
 from std_msgs.msg import UInt16
 from project_pkg.msg import Music, Note
 
-key_vals = [113, 105, 98, 90, 84, 76, 68] #C, D, E, F, G, A, B
+key_vals = [122, 113, 105, 98, 90, 84, 76, 68] #C, D, E, F, G, A, B
 down_val = 73
 up_val = 110
-bpm = 120
-bpm = 60
-move_delay = 0.15
-up_delay = 0.0
+bpm = 90
+move_delay = 0.08
+up_delay = 0.01
 initial_delay = 1.0
 
 def pot_callback(data):
@@ -51,7 +50,7 @@ def music_callback(data):
 
         rate.sleep()
 
-        while time.time() - up_delay < note.rest_before:
+        while time.time() - start_time < up_delay:
             rate.sleep()
 
         pub1.publish(key_vals[note.key])
