@@ -80,7 +80,7 @@ def remove_text(img):
   new_img = img.copy()
   kernel = cv.getStructuringElement(cv.MORPH_CROSS, (3,3))
   dilated = cv.dilate(new_img, kernel, iterations=5)
-  contours, hierarchy = cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+  _, contours, hierarchy = cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
   for contour in contours:
       [x, y, w, h] = cv.boundingRect(contour)
       #if w < 35 and h < 35:

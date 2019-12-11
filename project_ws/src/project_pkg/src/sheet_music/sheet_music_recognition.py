@@ -133,9 +133,9 @@ def process_sheet_music(filename, show_steps = True):
         show_wait_destroy("Removed extraneous markings", img)
 
     # match quarter/half notes first
+    template = cv.imread('./images/vertical_quarter_template5.jpg', 0)
     if template is None:
         template = cv.imread('sheet_music/images/vertical_quarter_template5.jpg', 0)
-    template = cv.imread('./images/vertical_quarter_template5.jpg', 0)
     template = imutils.resize(template, height=int(np.round(est_total_staff_height * 1.0)))
 
     whole_note_img = img.copy()

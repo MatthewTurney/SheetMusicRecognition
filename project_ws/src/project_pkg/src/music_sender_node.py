@@ -11,20 +11,22 @@ from std_msgs.msg import UInt16, Float32MultiArray, MultiArrayLayout, MultiArray
 
 def main():
 
-    music = get_music2()
+    music = get_music()
     print(music)
 
     pub = rospy.Publisher('music', Music, queue_size=10)
 
     rospy.init_node('music_sender', anonymous=True)
-    rate = rospy.Rate(100) # 10hz
+    rate = rospy.Rate(10) # 10hz
 
     pub.publish(music)
+
+    rospy.spin()
 
 def get_music():
 
     string_to_duration = {'eighth': 1.0/8, 'quarter': 1.0 / 4, 'half': 1.0 / 2, 'whole': 1.0}
-    msg = process_sheet_music('sheet_music/images/alphabet_song.jpg')
+    msg = process_sheet_music('sheet_music/images/' + sys.argv[1] + '.jpg')
 
     lst = []
     for n in msg:
@@ -45,14 +47,14 @@ def get_music():
 
     music = Music(lst)
 
-    with open('alphabet_song.music', 'wb') as music_file:
+    with open(sys.argv[1] + '.music', 'wb') as music_file:
     	pickle.dump(music, music_file)
 
     return music
 
 
 def get_music2():
-    with open('alphabet_song.music', 'rb') as music_file:
+    with open(sys.argv[1] + '.music', 'rb') as music_file:
         return pickle.load(music_file)
 
 if __name__ == '__main__':
