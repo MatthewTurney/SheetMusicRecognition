@@ -13,12 +13,12 @@ from template_matching import *
 IMAGE_SIZE = (1920, 1080)
 NUM_CHUNKS = 10
 T_STAFF_CAND = 0.15
-T_STAFF_MATCH = 0.5
-T_BAR_MATCH = 0.7
+T_STAFF_MATCH = 0.3 #.5
+T_BAR_MATCH = 0.8 #.7
 T_END_MATCH = 0.6
 T_TIME_MATCH = 0.6
-T_QUARTER_MATCH = 0.15
-T_WHOLE_MATCH = 0.4
+T_QUARTER_MATCH = 0.05 #.15
+T_WHOLE_MATCH = 0.45 # .4
 #T_NOTES = [-1.9, -0.8, 0.3, 1.6, 2.3, 3.2, 4.2]
 T_NOTES = [-1.8, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5]
 minLineLength = 75
@@ -26,7 +26,7 @@ maxLineGap = 15
 
 def process_sheet_music(filename, show_steps = True):
     # read image from file
-    img = read_image_from_file(filename)
+    img = read_image_from_file(filename, color = True)
     
     # resize image
     img = cv.resize(img, IMAGE_SIZE, interpolation = cv.INTER_AREA)
@@ -34,6 +34,13 @@ def process_sheet_music(filename, show_steps = True):
     # display original image
     if show_steps:
         show_wait_destroy("Original Image", img)
+
+    _, img = remove_shadows(img)
+
+    if show_steps:
+        show_wait_destroy("Shadows removed", img)
+
+    img = convert_to_grayscale(img)
 
     # binary threshold
     img = (cv.bitwise_not(binary_threshold(img))).astype(np.uint8)
@@ -53,6 +60,7 @@ def process_sheet_music(filename, show_steps = True):
     print(staff_height)
     print(staff_space)
     img = create_initial_staff_image(img, T_length)
+    isi = img.copy()
     if show_steps:
         show_wait_destroy("Initial Staff Image", img)
 
@@ -64,15 +72,6 @@ def process_sheet_music(filename, show_steps = True):
     max_y = max([l[0][1] for l in lines])
     if show_steps:
         show_wait_destroy("lines", colored_img)
-
-    #test_img = np.zeros((colored_img.shape[0], colored_img.shape[1], 3), np.uint8)
-    #for line in lines:
-    #    x1,y1,x2,y2 = line[0]
-    #    cv.line(test_img,(x1,y1),(x2,y2),(0,255,0),2)
-
-    #show_wait_destroy("test", test_img)
-
-    #raise RuntimeError("DONE")
 
     # calculate average staff line slope at every x pos
     slopes, slope_img = calc_slopes(img, NUM_CHUNKS, lines)
@@ -89,9 +88,10 @@ def process_sheet_music(filename, show_steps = True):
         show_wait_destroy("Staff candidates", colored_img)
 
     # remove staff from original (text removed) image
-    staff_removed_img = remove_staff(processed_img.copy(), staff_candidates, T_length)
+    staff_removed_img, staff_candidates = remove_staff(processed_img.copy(), staff_candidates, T_length)
     if show_steps:
         show_wait_destroy("Staff removed", staff_removed_img)
+        show_wait_destroy("staff candidates corrected", draw_staff(cv.cvtColor(isi, cv.COLOR_GRAY2RGB), staff_candidates))
 
 
     est_total_staff_height = (4 * staff_space) + (5 * staff_height)
@@ -108,24 +108,26 @@ def process_sheet_music(filename, show_steps = True):
     img, _ = remove_template_matches(img, template, T_STAFF_MATCH)
 
     # find bar lines
-    template = cv.imread('./images/bar_template.jpg', 0)  
-    img, bars = remove_template_matches(img, template, T_BAR_MATCH)
+    template = cv.imread('./images/bar_template.jpg', 0) 
+    #template = imutils.resize(template, height=int(est_total_staff_height * 1.5)) 
+    img, bars = remove_template_matches_with_buffer(img, template, T_BAR_MATCH, 20)
 
     # remove 4/4 time and end markers
     template = cv.imread('./images/end.jpg', 0)
-    template = imutils.resize(template, height=int(est_total_staff_height * 1.5))
+    #template = imutils.resize(template, height=int(est_total_staff_height * 1.6))
     img, end = remove_template_matches(img, template, T_END_MATCH)
     if (len(end) > 0):
         end = end[0]
 
     template = cv.imread('./images/time_template.jpg', 0)
     img, _ = remove_template_matches(img, template, T_TIME_MATCH)
-
     if show_steps:
         show_wait_destroy("Removed extraneous markings", img)
 
     # match quarter/half notes first
     template = cv.imread('./images/vertical_quarter_template5.jpg', 0)
+    template = imutils.resize(template, height=int(np.round(est_total_staff_height * 1.0)))
+
     whole_note_img = img.copy()
     notes = []
     colored_img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
@@ -140,6 +142,21 @@ def process_sheet_music(filename, show_steps = True):
             h -= 1
         return 0
             
+    def left_right_diff(img_cropped, w):
+        l = 0
+        while l < w:
+            if (sum(img_cropped[len(img_cropped)//2:, l]) > 0):
+                break
+            l+=1
+        r = w - 1
+        while r > 0:
+            if (sum(img_cropped[len(img_cropped)//2:, r]) > 0):
+                break
+            r-=1
+        return r - l
+
+    lr = []
+
     for x, y, w, h in calc_boxes(template, T_QUARTER_MATCH, img):
         if (np.sum(img[y:y+h+1, x:x+w+1]) / 255 > 300) and \
             (np.sum(img[y:y+(h//2)+1, x:x+w+1]) < np.sum(img[y+(h//2):y+h+1, x:x+w+1])) and \
@@ -148,77 +165,124 @@ def process_sheet_music(filename, show_steps = True):
             cv.rectangle(whole_note_img, (x,y-50), (x+w, y+h), (0, 0, 0), -1) # black out quarter/half notes for whole note detection
             #cv.circle(colored_img, (x+25,y+85), 5, (0, 0, 255), -1)
             new_vertical_offset = fix_center(img[y:y+h, x:x+w], h)
-            cx = x + 30
-            cy = y+new_vertical_offset-8
+            cx = x + (w//2)
+            cy = y+new_vertical_offset-(h//9)
             cv.circle(colored_img, (cx, cy), 4, (0, 0, 255), -1)
 
-            if np.sum(img[y-5:y+5, x-10:x+w+10]) / 255 > 100:
-                notes.append((cx,cy, "eighth"))
+            lr_note = left_right_diff(img[y:y+h+1, x:x+w+1], w)
+
+            if np.sum(img[y-5:y+20, x-10:x+w+30]) / 255 > 300:
+                notes.append((cx,cy, "eighth", lr_note))
                 cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 0, 255), 2)
-            elif np.sum(img[cy:cy+3,cx-5:cx+5]) / 255 > 25: # half notes have hole in the middle
-                notes.append((cx,cy, "quarter"))
+            elif np.sum(img[cy:cy+3,cx-5:cx+5]) / 255 > 10: # half notes have hole in the middle
+                notes.append((cx,cy, "quarter", lr_note))
                 cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
             else:
-                notes.append((cx,cy, "half"))
+                notes.append((cx,cy, "half", lr_note))
                 cv.rectangle(colored_img, (x,y), (x+w, y+h), (255, 0, 0), 2)
+
+            lr.append(lr_note)
 
                 #notes.append((x + 25, y+new_vertical_offset, "half"))
 
 
     # match whole notes
     template = cv.imread('./images/whole_note_template.jpg', 0)
+    template = imutils.resize(template, height=int(np.round(est_total_staff_height * 0.7)))
     for x, y, w, h in calc_boxes(template, T_WHOLE_MATCH, whole_note_img):
         cv.rectangle(colored_img, (x,y), (x+w, y+h), (0, 255, 0), 2)
-        cv.circle(colored_img, (x+45,y+28), 5, (0, 0, 255), -1)
-        notes.append((x+45,y+28, "whole"))
+        new_vertical_offset = fix_center(img[y:y+h, x:x+w], h)
+        cx = x + (w//2)
+        cy = y+new_vertical_offset-(h//4)
+        cv.circle(colored_img, (cx,cy), 5, (0, 0, 255), -1)
+
+        lr_note = left_right_diff(img[y:y+h+1, x:x+w+1], w)
+        notes.append((cx,cy, "whole", lr_note))
+        #lr.append(lr_note)
 
     if show_steps:
+        colored_img = draw_staff(colored_img, staff_candidates)
         show_wait_destroy("notes", colored_img)
 
     # order notes and determine pitch
     ordered_notes = []
     notes.sort(key = lambda note: note[0]) # sort by x position
 
-    q_sums = []
-    h_sums = []
-    for note in notes:
-        x, y = note[0], note[1]
-        s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
-        if note[2] == "quarter":
-            q_sums.append(s)
-        if note[2] == "half":
-            h_sums.append(s)
-    quarter_note_sum = np.mean(q_sums)
-    half_note_sum = np.mean(h_sums)
+    # q_sums = []
+    # h_sums = []
+    # for note in notes:
+    #     x, y = note[0], note[1]
+    #     s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
+    #     if note[2] == "quarter" or note[2] == "eighth":
+    #         q_sums.append(s)
+    #     if note[2] == "half":
+    #         h_sums.append(s)
+    # quarter_note_sum = np.mean(q_sums)
+    # half_note_sum = np.mean(h_sums)
 
-    print(quarter_note_sum)
-    print(half_note_sum)
+    # print(quarter_note_sum)
+    # print(half_note_sum)
+    lr_mean = np.max(lr)
 
     thresholds = T_NOTES # notes are not spaced quite linearly
 
     for staff_index in range(4,len(staff_candidates), 5):
         notes_in_staff = [note for note in notes if note[1] < staff_candidates[staff_index][0] + (staff_space * 3) + staff_height and note[1] > staff_candidates[staff_index][0] - ((staff_space + staff_height)*6)]
+
+
         for note in notes_in_staff:
             staff_base = calc_staff(slopes, staff_candidates[staff_index][0], note[0], height(img) // NUM_CHUNKS)
+            
+            staff_lines = [cand[1][note[0]][0] for cand in staff_candidates[staff_index - 4 : staff_index + 1]]
+            for l in range(len(staff_lines) - 1, -1, -1):
+                if l > 0:
+                    staff_lines.insert(l, staff_lines[l] - (staff_lines[l] - staff_lines[l-1])//2)
+            staff_lines.append(staff_lines[-1] + ((staff_lines[-1] - staff_lines[-3])//2))
+            #staff_lines.append(staff_lines[-2] + ((staff_lines[-2] - staff_lines[-4])))
+            staff_lines.reverse()
+            print("note x: ", note[0])
+            print(staff_lines)
+            print(staff_base)
+            print()
+
+            closest = 0
+            dist = np.abs(staff_lines[0] - note[1])
+            c = 0
+            for sl in staff_lines:
+                if np.abs(sl - note[1]) < dist:
+                    closest = c
+                    dist = np.abs(sl - note[1])
+                elif np.abs(sl - note[1]) == dist and c % 2 == 1:
+                    closest = c
+                    dist = np.abs(sl - note[1])
+                c+=1
+
+            pitch_index = closest + 1
+            pitch = note[1]
+            
             #dist_above = (staff + staff_space) - note[1]
             #print(staff, staff_candidates[staff_index][0], dist_above, note[2])
             #print()
             #print("Note y: ", note[1])
             #print("Staff base: ", staff_base)
-            pitch = ((staff_base - note[1]) / (staff_space + staff_height))*2.0
-            pitch_index = 0
-            while(pitch_index < len(thresholds) - 1 and pitch >= thresholds[pitch_index]):
-                pitch_index+=1
 
-            x, y = note[0], note[1]
+            #pitch = ((staff_base - note[1]) / (staff_space + staff_height))*2.0
+            #pitch_index = 0
+            #while(pitch_index < len(thresholds) - 1 and pitch >= thresholds[pitch_index]):
+            #    pitch_index+=1
 
-            s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
-            if (s > quarter_note_sum and note[2] == "quarter" and pitch < -1.3):
+            #x, y = note[0], note[1]
+
+            #s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
+            #if (s > quarter_note_sum and (note[2] == "quarter" or note[2] == "eighth") and pitch_index == 1): #pitch < -1.3):
+            #    pitch_index = 0
+            #if (s > half_note_sum and note[2] == "half" and pitch_index == 1): #and pitch < -1.5):
+            #    pitch_index = 0
+
+            if note[3] > lr_mean - 10 and pitch_index == 1:
                 pitch_index = 0
-            if (s > half_note_sum and note[2] == "half" and pitch < -1.5):
-                pitch_index = 0
 
-            ordered_notes.append((pitch_index, note[2], 0, pitch, s))
+            ordered_notes.append((pitch_index, note[2], 0, pitch, note[3]))
 
     return ordered_notes
 

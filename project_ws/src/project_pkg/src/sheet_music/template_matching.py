@@ -19,6 +19,13 @@ def remove_template_matches(img, template, threshold):
         matches.append((x + (w//2), y + (h//2)))
     return img, matches
 
+def remove_template_matches_with_buffer(img, template, threshold, b):
+    matches = []
+    for x, y, w, h in calc_boxes(template, threshold, img):
+        cv.rectangle(img, (x+b,y), (x+w-b, y+h), (0, 0, 0), cv.FILLED)
+        matches.append((x + (w//2), y + (h//2)))
+    return img, matches
+
 # def match_template(img, template, center_offset, match_threshold=.85, scales=[1.0]):
 #     # read template
 #     template = cv.imread(template,0)

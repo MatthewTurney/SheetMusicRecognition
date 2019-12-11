@@ -15,20 +15,21 @@ def calc_staff_line(slopes, row, img):
         col += 1
     return line
 
-def calc_staff_line_chunks(slopes, row, img, chunk_size):
+def calc_staff_line_chunks(slopes, row, img, chunk_size, interval = 15):
     white_seen = 0
     col = 0
     r = row
     line = []
-    for col in range(width(img)):
+    for col in range(0, width(img), interval):
         if (int(np.round(r)) < height(img) and col < width(img)):
-            line.append((int(np.round(r)), col))
+            for i in range(interval):
+                line.append((int(np.round(r)), col + i))
             if(img[int(np.round(r))][col] == 255):
                 white_seen += 1
         if (int(r // chunk_size) < len(slopes) and int(r // chunk_size) >= 0):
-            r += slopes[int(r // chunk_size)][col]
+            r += slopes[int(r // chunk_size)][col] * float(interval)
         col += 1
-    return line, white_seen
+    return line, white_seen*interval
 
 def calc_staff(chunked_slopes, row, col, chunk_size):
     chunk = row // chunk_size
@@ -39,7 +40,8 @@ def calc_staff(chunked_slopes, row, col, chunk_size):
     return int(np.round(r))
 
 def draw_candidates(draw_img, staff_cand):
-    colored_img = cv.cvtColor(draw_img.copy(), cv.COLOR_GRAY2RGB)
+    #colored_img = cv.cvtColor(draw_img.copy(), cv.COLOR_GRAY2RGB)
+    colored_img = draw_img
     for cand in staff_cand:
         x1,y1,x2,y2 = 0, cand[0], 40, cand[0]
         cv.line(colored_img,(x1,y1),(x2,y2),(0,255,0),2)
@@ -61,7 +63,7 @@ def intersects(start, end, candidates):
 def estimate_staff_stats(img):
     white_runs = []
     black_runs = []
-    for i in range(0, width(img), 10):
+    for i in range(0, width(img), 20):
         wr, br = calc_runs(img[:, i], 255, 0)
         white_runs.extend(wr)
         black_runs.extend(br)
@@ -180,31 +182,38 @@ def find_staff_candidates(img, slopes, T_staff_cand, T_length, num_chunks, staff
 
 def remove_staff(img, staff_candidates, T_length):
     staff_removed = img.copy()
-    for cand in staff_candidates:
+    for c in range(len(staff_candidates)):
+        cand = staff_candidates[c]
         for row, col in cand[1]:
-            if staff_removed[row][col] == 255:
-                start = row
-                while(start > 0 and staff_removed[start][col] == 255):
-                    start -= 1
-                end = row
-                while(end < height(img) - 1 and staff_removed[end][col] == 255):
-                    end += 1
-                if (end - start <= T_length):
-                    for j in range(start + 1, end):
-                        staff_removed[j][col] = 0
-            else:
-                j = max(row - T_length, 0)
-                while(j < height(staff_removed) - 1 and j <= row + T_length and staff_removed[j][col] == 0):
+            mids = []
+            j = max(row - int(T_length * 1.5), 0)
+            while(j < height(staff_removed) - 1 and j <= row + T_length):
+                while staff_removed[j][col] == 255:
+                    j+=1
+                while(j < height(staff_removed) - 1 and j <= row + int(T_length * 1.5) and staff_removed[j][col] == 0):
                     j += 1
                 if (staff_removed[j][col] == 255):
                     start = j
-                    while(j < height(staff_removed) - 1 and j <= row + T_length and staff_removed[j][col] == 255):
+                    while(j < height(staff_removed) - 1 and j <= row + int(T_length * 1.5) and staff_removed[j][col] == 255):
                         j += 1
                     if (j - start <= T_length):
+                        middle = start + ((j - start) // 2) + 1
+                        if (np.abs(row - middle) < 10):
+                            mids.append(middle)
                         for x in range(start, j):
                             staff_removed[x][col] = 0
+            if len(mids) > 0 and col > 5:
+                avg = int(np.round(sum([staff_candidates[c][1][col - i][0] for i in range(5)]) / 5.0))
 
-    return staff_removed
+
+                dists = [np.abs(row - m) for m in mids]
+                staff_candidates[c][1][col] = ((mids[np.argmin(dists)] + avg) // 2, col)
+            elif col > 20:
+                avg = int(np.round(sum([staff_candidates[c][1][col - i][0] for i in range(20)]) / 20.0))
+                staff_candidates[c][1][col] = (avg, col)
+                # quarter notes are still off
+
+    return staff_removed, staff_candidates
         
 def draw_staff(img, staff_candidates):
     colored_img = img.copy()

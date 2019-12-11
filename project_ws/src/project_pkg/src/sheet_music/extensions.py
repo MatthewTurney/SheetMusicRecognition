@@ -40,8 +40,14 @@ def read_image_from_args():
         raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
     return img
 
-def read_image_from_file(filename):
-    img = cv.imread(filename, 0)
+def read_image_from_file(filename, color = False):
+    if color:
+        img = cv.imread(filename, cv.IMREAD_COLOR)
+    else:
+        img = cv.imread(filename, cv.IMREAD_GRAYSCALE)
     if img is None:
         raise RuntimeError("Image path not found. Did you forget to specify the images/ folder?")
     return img
+
+def convert_to_grayscale(img):
+    return cv.cvtColor(img.copy(), cv.COLOR_RGB2GRAY)
