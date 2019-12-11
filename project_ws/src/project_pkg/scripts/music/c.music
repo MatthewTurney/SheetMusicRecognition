@@ -19,8 +19,8 @@ g2
 Ntp8
 Rp9
 (lp10
-I2
-aF0.5
+I0
+aF0.25
 aI0
 abag0
 (g7
@@ -28,8 +28,8 @@ g2
 Ntp11
 Rp12
 (lp13
-I1
-aF0.5
+I0
+aF0.25
 aI0
 abag0
 (g7
@@ -38,7 +38,7 @@ Ntp14
 Rp15
 (lp16
 I0
-aF1.0
+aF0.25
 aI0
 abag0
 (g7
@@ -46,8 +46,8 @@ g2
 Ntp17
 Rp18
 (lp19
-I2
-aF0.5
+I0
+aF0.25
 aI0
 abag0
 (g7
@@ -55,8 +55,8 @@ g2
 Ntp20
 Rp21
 (lp22
-I1
-aF0.5
+I0
+aF0.25
 aI0
 abag0
 (g7
@@ -65,7 +65,7 @@ Ntp23
 Rp24
 (lp25
 I0
-aF1.0
+aF0.25
 aI0
 abag0
 (g7
@@ -109,7 +109,7 @@ g2
 Ntp38
 Rp39
 (lp40
-I1
+I0
 aF0.25
 aI0
 abag0
@@ -118,7 +118,7 @@ g2
 Ntp41
 Rp42
 (lp43
-I1
+I0
 aF0.25
 aI0
 abag0
@@ -127,7 +127,7 @@ g2
 Ntp44
 Rp45
 (lp46
-I1
+I0
 aF0.25
 aI0
 abag0
@@ -136,7 +136,7 @@ g2
 Ntp47
 Rp48
 (lp49
-I1
+I0
 aF0.25
 aI0
 abag0
@@ -145,8 +145,8 @@ g2
 Ntp50
 Rp51
 (lp52
-I2
-aF0.5
+I0
+aF0.25
 aI0
 abag0
 (g7
@@ -154,16 +154,7 @@ g2
 Ntp53
 Rp54
 (lp55
-I1
-aF0.5
-aI0
-abag0
-(g7
-g2
-Ntp56
-Rp57
-(lp58
 I0
-aF1.0
+aF0.25
 aI0
 abaab.

@@ -103,7 +103,7 @@ def process_sheet_music(filename, show_steps = True):
         show_wait_destroy("isolated pixels removed", img)
 
     # remove staff thingys
-    template = cv.imread('./images/staff_template.jpg', 0)
+    template = cv.imread('sheet_music/images/staff_template.jpg', 0)
     template = imutils.resize(template, height=int(est_total_staff_height * 2))
     img, _ = remove_template_matches(img, template, T_STAFF_MATCH)
 
@@ -119,7 +119,7 @@ def process_sheet_music(filename, show_steps = True):
     if (len(end) > 0):
         end = end[0]
 
-    template = cv.imread('./images/time_template.jpg', 0)
+    template = cv.imread('sheet_music/images/time_template.jpg', 0)
     img, _ = remove_template_matches(img, template, T_TIME_MATCH)
     if show_steps:
         show_wait_destroy("Removed extraneous markings", img)
