@@ -14,9 +14,9 @@ In 4 separate terminals:\
 <img src="https://github.com/MatthewTurney/SheetMusicRecognition/blob/master/project_ws/rosgraph.png"/>
 
 #### Nodes
-music_sender_node: processes sheet music \
-arduino_interface_node: sends angle values to servos according to music \
-serial_node: moves servos
+music_sender_node (processes sheet music) \
+arduino_interface_node (sends angle values to servos according to music) \
+serial_node (moves servos)
 
 #### Messages
 Music (Note array) \
