@@ -1,9 +1,0 @@
-Notes:
-
-Pitch
-Duration
-Delta from last end
-
-Message type:
-
-Array of notes

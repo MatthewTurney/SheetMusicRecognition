@@ -1,9 +1,0 @@
-ros-kinetic-rosserial
-ros-kinstic-rosserial-arduino
-Multi-Template-Matching
-imutils
-opencv-python
-numpy
-imutils
-python 3.6.1
-
