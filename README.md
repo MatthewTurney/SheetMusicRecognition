@@ -4,8 +4,8 @@ For our EECS106A/206A final project, we built a robot that reads sheet music and
 
 ## Files of Interest
 Sheet Music Recognition Main File: [project_ws/src/project_pkg/src/sheet_music/sheet_music_recognition.py](project_ws/src/project_pkg/src/sheet_music/sheet_music_recognition.py) \
-music_sender_node: [project_ws/src/project_pkg/src/music_sender_node.py](project_ws/src/project_pkg/src/music_sender_node.py) \
-arduino_interface_node: [project_ws/src/project_pkg/src/arduino_interface_node.py](project_ws/src/project_pkg/src/arduino_interface_node.py) \
+music_sender: [project_ws/src/project_pkg/src/music_sender_node.py](project_ws/src/project_pkg/src/music_sender_node.py) \
+arduino_interface: [project_ws/src/project_pkg/src/arduino_interface_node.py](project_ws/src/project_pkg/src/arduino_interface_node.py) \
 serial_node (Arduino): [arduino/ServoPot/ServoPot.ino](arduino/ServoPot/ServoPot.ino)
 
 ## ROS
@@ -21,8 +21,8 @@ In 4 separate terminals:\
 <img src="https://github.com/MatthewTurney/SheetMusicRecognition/blob/master/project_ws/rosgraph.png"/>
 
 #### Nodes
-music_sender_node: processes sheet music \
-arduino_interface_node: sends angle values to servos according to music \
+music_sender: processes sheet music \
+arduino_interface: sends angle values to servos according to music \
 serial_node (Arduino): moves servos
 
 #### Messages
