@@ -13,13 +13,12 @@ from template_matching import *
 IMAGE_SIZE = (1920, 1080)
 NUM_CHUNKS = 10
 T_STAFF_CAND = 0.15
-T_STAFF_MATCH = 0.3 #.5
-T_BAR_MATCH = 0.8 #.7
+T_STAFF_MATCH = 0.3
+T_BAR_MATCH = 0.8
 T_END_MATCH = 0.6
 T_TIME_MATCH = 0.6
-T_QUARTER_MATCH = 0.05 #.15
-T_WHOLE_MATCH = 0.45 # .4
-#T_NOTES = [-1.9, -0.8, 0.3, 1.6, 2.3, 3.2, 4.2]
+T_QUARTER_MATCH = 0.05
+T_WHOLE_MATCH = 0.45
 T_NOTES = [-1.8, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5]
 minLineLength = 75
 maxLineGap = 15
@@ -35,6 +34,7 @@ def process_sheet_music(filename, show_steps = True):
     if show_steps:
         show_wait_destroy("Original Image", img)
 
+    # remove shadows
     _, img = remove_shadows(img)
 
     if show_steps:
@@ -113,14 +113,12 @@ def process_sheet_music(filename, show_steps = True):
     template = cv.imread('./images/bar_template.jpg', 0) 
     if template is None:
         template = cv.imread('sheet_music/images/bar_template.jpg', 0)
-    #template = imutils.resize(template, height=int(est_total_staff_height * 1.5)) 
     img, bars = remove_template_matches_with_buffer(img, template, T_BAR_MATCH, 20)
 
     # remove 4/4 time and end markers
     template = cv.imread('./images/end.jpg', 0)
     if template is None:
         template = cv.imread('sheet_music/images/end.jpg', 0)
-    #template = imutils.resize(template, height=int(est_total_staff_height * 1.6))
     img, end = remove_template_matches(img, template, T_END_MATCH)
     if (len(end) > 0):
         end = end[0]
@@ -142,6 +140,7 @@ def process_sheet_music(filename, show_steps = True):
     notes = []
     colored_img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
 
+    # fix center position based on bottom of note
     def fix_center(img_cropped, h):
         img_cropped = img_cropped.copy()
         h = h - 1
@@ -152,6 +151,7 @@ def process_sheet_music(filename, show_steps = True):
             h -= 1
         return 0
             
+    # for distinguishing C's from D's based on horizontal line
     def left_right_diff(img_cropped, w):
         l = 0
         while l < w:
@@ -173,7 +173,6 @@ def process_sheet_music(filename, show_steps = True):
             (np.sum(img[y:y+(h//2)+1, x:x+w+1]) != 0) and \
             (np.sum(img[y+(h//2):y+h+1, x:x+w+1]) != 0):
             cv.rectangle(whole_note_img, (x,y-50), (x+w, y+h), (0, 0, 0), -1) # black out quarter/half notes for whole note detection
-            #cv.circle(colored_img, (x+25,y+85), 5, (0, 0, 255), -1)
             new_vertical_offset = fix_center(img[y:y+h, x:x+w], h)
             cx = x + (w//2)
             cy = y+new_vertical_offset-(h//9)
@@ -210,7 +209,6 @@ def process_sheet_music(filename, show_steps = True):
 
         lr_note = left_right_diff(img[y:y+h+1, x:x+w+1], w)
         notes.append((cx,cy, "whole", lr_note))
-        #lr.append(lr_note)
 
     if show_steps:
         colored_img = draw_staff(colored_img, staff_candidates)
@@ -220,20 +218,6 @@ def process_sheet_music(filename, show_steps = True):
     ordered_notes = []
     notes.sort(key = lambda note: note[0]) # sort by x position
 
-    # q_sums = []
-    # h_sums = []
-    # for note in notes:
-    #     x, y = note[0], note[1]
-    #     s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
-    #     if note[2] == "quarter" or note[2] == "eighth":
-    #         q_sums.append(s)
-    #     if note[2] == "half":
-    #         h_sums.append(s)
-    # quarter_note_sum = np.mean(q_sums)
-    # half_note_sum = np.mean(h_sums)
-
-    # print(quarter_note_sum)
-    # print(half_note_sum)
     lr_mean = np.max(lr)
 
     thresholds = T_NOTES # notes are not spaced quite linearly
@@ -250,7 +234,6 @@ def process_sheet_music(filename, show_steps = True):
                 if l > 0:
                     staff_lines.insert(l, staff_lines[l] - (staff_lines[l] - staff_lines[l-1])//2)
             staff_lines.append(staff_lines[-1] + ((staff_lines[-1] - staff_lines[-3])//2))
-            #staff_lines.append(staff_lines[-2] + ((staff_lines[-2] - staff_lines[-4])))
             staff_lines.reverse()
             print("note x: ", note[0])
             print(staff_lines)
@@ -271,25 +254,6 @@ def process_sheet_music(filename, show_steps = True):
 
             pitch_index = closest + 1
             pitch = note[1]
-            
-            #dist_above = (staff + staff_space) - note[1]
-            #print(staff, staff_candidates[staff_index][0], dist_above, note[2])
-            #print()
-            #print("Note y: ", note[1])
-            #print("Staff base: ", staff_base)
-
-            #pitch = ((staff_base - note[1]) / (staff_space + staff_height))*2.0
-            #pitch_index = 0
-            #while(pitch_index < len(thresholds) - 1 and pitch >= thresholds[pitch_index]):
-            #    pitch_index+=1
-
-            #x, y = note[0], note[1]
-
-            #s = np.sum(img[y-25:y+25,x-25:x+25]) / 255
-            #if (s > quarter_note_sum and (note[2] == "quarter" or note[2] == "eighth") and pitch_index == 1): #pitch < -1.3):
-            #    pitch_index = 0
-            #if (s > half_note_sum and note[2] == "half" and pitch_index == 1): #and pitch < -1.5):
-            #    pitch_index = 0
 
             if note[3] > lr_mean - 10 and pitch_index == 1:
                 pitch_index = 0
@@ -315,14 +279,6 @@ if __name__ == "__main__":
     for note in notes:
         print(note)
 
-    
-# OUTPUT
-# pitch_index: integer starting at 0 = middle C
-# type = {"quarter", "half", "whole"}
-# delta = 0 (no rests rn)
-# pitch = for debugging purposes only (raw pitch value)
-
-# took 2:20 to process hcb.jpg
 
 
 

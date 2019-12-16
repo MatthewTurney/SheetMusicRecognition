@@ -8,7 +8,6 @@ from extensions import width, height
 def binary_threshold(img):
 
   binary_img = img.copy()
-  #binary_img = cv.bitwise_not(binary_img)
 
   # Otsu's thresholding - for removing background
   _, binary_img = cv.threshold(binary_img, 0, 255, cv.THRESH_BINARY+cv.THRESH_OTSU)
@@ -83,74 +82,7 @@ def remove_text(img):
   _, contours, hierarchy = cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
   for contour in contours:
       [x, y, w, h] = cv.boundingRect(contour)
-      #if w < 35 and h < 35:
-      #    continue
       if (w < width(img) // 2):
           cv.rectangle(img, (x, y), (x + w, y + h), (0, 0, 0), cv.FILLED)
   return img
 
-
-  # calculate the lengths of successive runs of <val> in list <arr>
-# def calc_runs(arr, val):
-#     ret = []
-#     i = 0
-#     while(i < len(arr)):
-#         while(i < len(arr) and arr[i] != val):
-#             i+=1
-#         mark = i
-#         while(i < len(arr) and arr[i] == val):
-#             i+=1
-#         ret.append(i - mark)
-#     return ret
-
-
-
-
-# DEPRECATED
-# def preprocess(img):
-#   processed_img = img.copy()
-
-#   # binary threshold
-#   processed_img = binary_threshold(processed_img)
-
-#   # rotate so staff is (approximately) horizontal
-#   edges = cv.Canny(processed_img,50,150,apertureSize = 3)
-#   show_wait_destroy("edges", edges)
-#   minLineLength = 500
-#   maxLineGap = 50
-#   lines = cv.HoughLinesP(edges,1,np.pi/180,100,minLineLength=minLineLength,maxLineGap=maxLineGap)
-#   if (lines is None):
-#       raise RuntimeError("No staff lines found")
-#   colored_img = cv.cvtColor(processed_img, cv.COLOR_GRAY2RGB)
-#   skew_angles = []
-#   for line in lines:
-#     x1,y1,x2,y2 = line[0]
-#     cv.line(colored_img,(x1,y1),(x2,y2),(0,255,0),2)
-#     skew_angles.append(np.arctan2(y2 - y1, x2 - x1))
-
-#   avg_skew = np.degrees(np.mean(skew_angles))
-#   print("Average skew angle: ", np.mean(skew_angles))
-#   show_wait_destroy("lines", colored_img)
-#   M = cv.getRotationMatrix2D((width(processed_img) // 2, height(processed_img) // 2), avg_skew, 1)
-#   processed_img = cv.warpAffine(processed_img, M, (width(processed_img), height(processed_img)))
-
-#   # testing
-#   edges = cv.Canny(processed_img,50,150,apertureSize = 3)
-#   #show_wait_destroy("edges", edges)
-#   #minLineLength = 20
-#   #maxLineGap = 5
-#   minLineLength = 300
-#   maxLineGap = 30
-#   lines = cv.HoughLinesP(edges,1,np.pi/180,100,minLineLength=minLineLength,maxLineGap=maxLineGap)
-#   if (lines is None):
-#       raise RuntimeError("No staff lines found")
-#   #staff_segments = np.ones((height(processed_img),width(processed_img), 3), np.uint8) * 255
-#   staff_segments = colored_img.copy()
-#   for line in lines:
-#     x1,y1,x2,y2 = line[0]
-#     if (np.abs(np.degrees(np.arctan2(y2 - y1, x2 - x1))) < 5):
-#       cv.line(staff_segments,(x1,y1),(x2,y2),(0,255,0),2)
-#   show_wait_destroy("TEST", staff_segments)
-
-
-#   return processed_img, cv.cvtColor(staff_segments, cv.COLOR_BGR2GRAY) / 255
