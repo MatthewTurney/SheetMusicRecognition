@@ -8,7 +8,7 @@ In 4 separate terminals:\
 `roscore`\
 `rosrun rosserial_python serial_node.py /dev/ttyACM2` (argument name may be different depending on what the port is called)\
 `python arduino_interface_node.py` (in `project_ws/src/project_pkg/src`) \
-`python mock_music_sender.py twinkle_twinkle` (in `project_ws/src/project_pkg/scripts`, command line arg is song to play)
+`python music_sender_node.py alphabet_song` (in `project_ws/src/project_pkg/scripts`, command line arg is song to play)
 
 ### Messages
 Music (Note array) \
