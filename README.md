@@ -6,7 +6,8 @@ For our EECS106A/206A final project, we built a robot that reads sheet music and
 Sheet Music Recognition Main File: [project_ws/src/project_pkg/src/sheet_music/sheet_music_recognition.py](project_ws/src/project_pkg/src/sheet_music/sheet_music_recognition.py) \
 music_sender: [project_ws/src/project_pkg/src/music_sender_node.py](project_ws/src/project_pkg/src/music_sender_node.py) \
 arduino_interface: [project_ws/src/project_pkg/src/arduino_interface_node.py](project_ws/src/project_pkg/src/arduino_interface_node.py) \
-serial_node (Arduino): [arduino/ServoPot/ServoPot.ino](arduino/ServoPot/ServoPot.ino)
+serial_node (Arduino): [arduino/ServoPot/ServoPot.ino](arduino/ServoPot/ServoPot.ino) \
+Key pressing mechanism assembly CAD file: [KeyPressMechanism_Crank.step](KeyPressMechanism_Crank.step)
 
 ## ROS
 
